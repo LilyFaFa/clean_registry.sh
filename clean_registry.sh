@@ -5,7 +5,7 @@
 # The optional flag -x may be used to completely remove the specified repositories or tagged images.
 # This script stops the Registry container during the purge, making it temporarily unavailable to clients.
 #
-# v2.0 by Ricardo Branco
+# v2.1 by Ricardo Branco
 #
 # MIT License
 #
@@ -113,7 +113,11 @@ if [[ $($DOCKER run --rm registry:2 --version | awk '{ print $3 }' | tr -d v.) -
 fi
 
 # Get the Registry local directory from the container itself
-REGISTRY_DIR=$($DOCKER inspect --type container "$CONTAINER" | fgrep -B1 '"Destination": "/var/lib/registry",' | awk -F\" '$2 == "Source" { print $4 }')
+REGISTRY_DIR=$($DOCKER inspect -f '{{range $i, $v := .Config.Env}}{{printf "%s\n" $v}}{{end}}' "$CONTAINER" | \
+	sed -rn 's/^REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=(.*)/\1/p')
+REGISTRY_DIR=${REGISTRY_DIR:-"/var/lib/registry"}
+REGISTRY_DIR=$($DOCKER inspect -f '{{range $i, $v := .Mounts}}{{printf "%q\n" $v}}{{end}}' "$CONTAINER" | \
+	awk -F\" -v dir="$REGISTRY_DIR" '$8 == dir { print $6 }')
 
 cd "$REGISTRY_DIR/docker/registry/v2/repositories/" || exit 1
 
