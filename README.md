@@ -4,7 +4,11 @@ This script purges old, "untagged" repositories and runs the garbage collector i
 
 The optional flag -x may be used to completely remove the specified repositories or tagged images.
 
-NOTE: This script stops the Registry container during the purge, making it temporarily unavailable to clients.
+NOTES:
+
+  - This script stops the Registry container during cleanup, making it temporarily unavailable to clients.
+  - This script assumes local storage (the **filesystem** storage driver described at:
+  https://docs.docker.com/registry/configuration/#storage
 
 Usage:
 
