@@ -128,7 +128,7 @@ if [ -z "$REGISTRY_DIR" ] ; then
 	exit 1
 fi
 
-REGISTRY_DIR=$($DOCKER inspect -f '{{range $i, $v := .Mounts}}{{printf "%s %s\n" (index . "Source") (index . "Destination")}}{{end}}' |
+REGISTRY_DIR=$($DOCKER inspect -f '{{range .Mounts}}{{printf "%s %s\n" (index . "Source") (index . "Destination")}}{{end}}' |
 	awk -v dir="$REGISTRY_DIR" '$1 == dir { print $2 }')
 
 cd "$REGISTRY_DIR/docker/registry/v2/repositories/" || exit 1
