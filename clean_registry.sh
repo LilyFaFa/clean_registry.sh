@@ -5,7 +5,7 @@
 # The optional flag -x may be used to completely remove the specified repositories or tagged images.
 # This script stops the Registry container during the purge, making it temporarily unavailable to clients.
 #
-# v2.1 by Ricardo Branco
+# v2.1.1 by Ricardo Branco
 #
 # MIT License
 #
@@ -113,11 +113,23 @@ if [[ $($DOCKER run --rm registry:2 --version | awk '{ print $3 }' | tr -d v.) -
 fi
 
 # Get the Registry local directory from the container itself
+
+# Use $REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY if defined
 REGISTRY_DIR=$($DOCKER inspect -f '{{range $i, $v := .Config.Env}}{{printf "%s\n" $v}}{{end}}' "$CONTAINER" | \
 	sed -rn 's/^REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=(.*)/\1/p')
-REGISTRY_DIR=${REGISTRY_DIR:-"/var/lib/registry"}
-REGISTRY_DIR=$($DOCKER inspect -f '{{range $i, $v := .Mounts}}{{printf "%q\n" $v}}{{end}}' "$CONTAINER" | \
-	awk -F\" -v dir="$REGISTRY_DIR" '$8 == dir { print $6 }')
+
+# Otherwise extract it from the YAML config
+[ -z "$REGISTRY_DIR" ] && \
+REGISTRY_DIR=$($DOCKER cp "$CONTAINER":/etc/docker/registry/config.yml - | \
+	sed -rne '/^storage:/,/^[a-z]/p' | sed -rne '/^[[:blank:]]+filesystem:/,$s/^[[:blank:]]+rootdirectory:[[:blank:]]+(.*)/\1/p'
+
+if [ -z "$REGISTRY_DIR" ] ; then
+	echo "ERROR: Unsupported storage driver" >&2
+	exit 1
+fi
+
+REGISTRY_DIR=$($DOCKER inspect -f '{{range $i, $v := .Mounts}}{{printf "%s %s\n" (index . "Source") (index . "Destination")}}{{end}}' |
+	awk -v dir="$REGISTRY_DIR" '$1 == dir { print $2 }')
 
 cd "$REGISTRY_DIR/docker/registry/v2/repositories/" || exit 1
 
