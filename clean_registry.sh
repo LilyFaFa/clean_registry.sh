@@ -121,14 +121,14 @@ REGISTRY_DIR=$($DOCKER inspect -f '{{range $i, $v := .Config.Env}}{{printf "%s\n
 # Otherwise extract it from the YAML config
 [ -z "$REGISTRY_DIR" ] && \
 REGISTRY_DIR=$($DOCKER cp "$CONTAINER":/etc/docker/registry/config.yml - | \
-	sed -rne '/^storage:/,/^[a-z]/p' | sed -rne '/^[[:blank:]]+filesystem:/,$s/^[[:blank:]]+rootdirectory:[[:blank:]]+(.*)/\1/p'
+	sed -rne '/^storage:/,/^[a-z]/p' | sed -rne '/^[[:blank:]]+filesystem:/,$s/^[[:blank:]]+rootdirectory:[[:blank:]]+(.*)/\1/p')
 
 if [ -z "$REGISTRY_DIR" ] ; then
 	echo "ERROR: Unsupported storage driver" >&2
 	exit 1
 fi
 
-REGISTRY_DIR=$($DOCKER inspect -f '{{range .Mounts}}{{printf "%s %s\n" (index . "Source") (index . "Destination")}}{{end}}' |
+REGISTRY_DIR=$($DOCKER inspect -f '{{range .Mounts}}{{printf "%s %s\n" (index . "Source") (index . "Destination")}}{{end}}' "$CONTAINER" |
 	awk -v dir="$REGISTRY_DIR" '$1 == dir { print $2 }')
 
 cd "$REGISTRY_DIR/docker/registry/v2/repositories/" || exit 1
