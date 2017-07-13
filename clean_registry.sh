@@ -115,7 +115,7 @@ fi
 # Get the Registry local directory from the container itself
 
 # Use $REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY if defined
-REGISTRY_DIR=$($DOCKER inspect -f '{{range $i, $v := .Config.Env}}{{printf "%s\n" $v}}{{end}}' "$CONTAINER" | \
+REGISTRY_DIR=$($DOCKER inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$CONTAINER" | \
 	sed -rn 's/^REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=(.*)/\1/p')
 
 # Otherwise extract it from the YAML config
@@ -128,7 +128,7 @@ if [ -z "$REGISTRY_DIR" ] ; then
 	exit 1
 fi
 
-REGISTRY_DIR=$($DOCKER inspect -f '{{range .Mounts}}{{printf "%s %s\n" (index . "Source") (index . "Destination")}}{{end}}' "$CONTAINER" |
+REGISTRY_DIR=$($DOCKER inspect -f '{{range .Mounts}}{{println .Source .Destination}}{{end}}' "$CONTAINER" |
 	awk -v dir="$REGISTRY_DIR" '$1 == dir { print $2 }')
 
 cd "$REGISTRY_DIR/docker/registry/v2/repositories/" || exit 1
