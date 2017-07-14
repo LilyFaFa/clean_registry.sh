@@ -5,7 +5,7 @@
 # The optional flag -x may be used to completely remove the specified repositories or tagged images.
 # This script stops the Registry container during the purge, making it temporarily unavailable to clients.
 #
-# v2.2 by Ricardo Branco
+# v2.3 by Ricardo Branco
 #
 # MIT License
 #
@@ -101,7 +101,12 @@ if [[ -z $($DOCKER version -f '{{ .Client.Version }}' 2>/dev/null) ]] ; then
 fi
 
 # Check that the container is an instance of the registry:2 image
-if [[ $($DOCKER inspect --type container -f '{{ .Config.Image }}' "$CONTAINER") != "registry:2" ]] ; then
+image=$($DOCKER inspect --type container -f '{{ .Config.Image }}' "$CONTAINER")
+if [ -z "$image" ] ; then
+	exit 1
+fi
+
+if [ "$image" != "registry:2" ] ; then
 	echo "ERROR: The container $CONTAINER is not running the registry:2 image" >&2
 	exit 1
 fi
@@ -140,7 +145,7 @@ clean_revisions ()
 {
 	local repo="$1"
 
-	comm -13 <(ls $repo/_manifests/revisions/sha256/) \
+	comm -23 <(ls $repo/_manifests/revisions/sha256/) \
 		<(find $repo/_manifests/tags/ -type d -regextype egrep -regex '.*/sha256/[0-9a-f]+$' -printf '%f\n' | sort -u) | \
 	sed "s%^%$repo/_manifests/revisions/sha256/%" | \
 	xargs -r $run rm -rvf
@@ -163,7 +168,7 @@ clean_tag ()
 	else
 		current=$(< "$repo/_manifests/tags/$tag/current/link")
 		current=${current#"sha256:"}
-		find "$repo/_manifests/tags/$tag/index/sha256/" -type d ! -name $current -exec $run rm -rvf {} +
+		find "$repo/_manifests/tags/$tag/index/sha256/" -mindepth 1 -type d ! -name $current -exec $run rm -rvf {} +
 	fi
 
 	clean_revisions "$repo"
@@ -175,6 +180,9 @@ clean_repo ()
 	local repo="${1%:*}"
 	local tags=$(ls "$repo/_manifests/tags/" 2>/dev/null)
 	local tag
+	local current
+
+	declare -A currents
 
 	if [ ! -d "$repo" ] ; then
 		echo "ERROR: No such repository: $repo" >&2
@@ -191,6 +199,19 @@ clean_repo ()
 	fi
 
 	if [ -z "$tag" ] ; then
+		for link in $repo/_manifests/tags/*/current/link ; do
+			current=$(< $link)
+			current=${current#"sha256:"}
+			currents[$current]="x"
+		done
+
+		find $repo/_manifests/tags/ -type d -regextype egrep -regex '.*/sha256/[0-9a-f]+$' | \
+		while read d ; do
+			hash=${d##*/}
+			[ -z "${currents[$hash]}" ] && echo $d
+		done | \
+		$run xargs -r rm -rvf
+
 		clean_revisions "$repo"
 	else
 		clean_tag "$repo" "$tag" || let errors++
