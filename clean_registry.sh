@@ -52,7 +52,7 @@ check_dockertag ()
 	# From https://github.com/docker/docker/blob/master/image/spec/v1.2.md
 	# Tag values are limited to the set of characters [a-zA-Z0-9_.-], except they may not start with a . or - character.
 	# Tags are limited to 127 characters.
-	if ! [[ ${#1} -lt 256 && ${#tag} -lt 127 && $tag =~ ^[a-zA-Z0-9]+([\._-][a-zA-Z0-9_]+)*$ ]] ; then
+	if ! [[ ${#1} -lt 256 && ${#tag} -lt 128 && $tag =~ ^[a-zA-Z0-9]+([\._-][a-zA-Z0-9_]+)*$ ]] ; then
 		return 1
 	fi
 
