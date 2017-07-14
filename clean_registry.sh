@@ -5,7 +5,7 @@
 # The optional flag -x may be used to completely remove the specified repositories or tagged images.
 # This script stops the Registry container during the purge, making it temporarily unavailable to clients.
 #
-# v2.3 by Ricardo Branco
+# v2.4 by Ricardo Branco
 #
 # MIT License
 #
@@ -169,9 +169,8 @@ clean_tag ()
 		current=$(< "$repo/_manifests/tags/$tag/current/link")
 		current=${current#"sha256:"}
 		find "$repo/_manifests/tags/$tag/index/sha256/" -mindepth 1 -type d ! -name $current -exec $run rm -rvf {} +
+		clean_revisions "$repo"
 	fi
-
-	clean_revisions "$repo"
 }
 
 # Clean all tags (or a specific one, if specified) from a specific repository
