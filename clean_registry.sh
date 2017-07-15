@@ -71,7 +71,7 @@ check_dockertag ()
 
 for image ; do
 	if ! check_dockertag "$image" ; then
-		echo "Invalid Docker repository/tag: $image" 1>&2
+		echo "ERROR: Invalid Docker repository/tag: $image" 1>&2
 		exit 1
 	fi
 done
