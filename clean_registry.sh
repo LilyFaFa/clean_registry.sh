@@ -5,7 +5,7 @@
 # The optional flag -x may be used to completely remove the specified repositories or tagged images.
 # This script stops the Registry container during the purge, making it temporarily unavailable to clients.
 #
-# v2.4.1 by Ricardo Branco
+# v2.5 by Ricardo Branco
 #
 # MIT License
 #
@@ -124,9 +124,13 @@ REGISTRY_DIR=$($DOCKER inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$
 	sed -rn 's/^REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=(.*)/\1/p')
 
 # Otherwise extract it from the YAML config
-[ -z "$REGISTRY_DIR" ] && \
-REGISTRY_DIR=$($DOCKER cp "$CONTAINER":/etc/docker/registry/config.yml - | \
+if [ -z "$REGISTRY_DIR" ] ; then
+	CONFIG_YML=$($DOCKER exec -it registry cat /proc/1/cmdline | xargs -0 echo | awk '{ print $3 }')
+	REGISTRY_DIR=$($DOCKER cp "$CONTAINER:$CONFIG_YML" - | \
 	sed -rne '/^storage:/,/^[a-z]/p' | sed -rne '/^[[:blank:]]+filesystem:/,$s/^[[:blank:]]+rootdirectory:[[:blank:]]+(.*)/\1/p')
+fi
+
+CONFIG_YML=${CONFIG_YML:-"/etc/docker/registry/config.yml"}
 
 if [ -z "$REGISTRY_DIR" ] ; then
 	echo "ERROR: Unsupported storage driver" >&2
@@ -224,7 +228,7 @@ for image in ${@:-$(ls .)} ; do
 	clean_repo "$image" || let errors++
 done
 
-$DOCKER run --rm -e REGISTRY_STORAGE_DELETE_ENABLE=true -v "$REGISTRY_DIR:/var/lib/registry" registry:2 garbage-collect /etc/docker/registry/config.yml $run
+$DOCKER run --rm -e REGISTRY_STORAGE_DELETE_ENABLE=true -v "$REGISTRY_DIR:/var/lib/registry" registry:2 garbage-collect "$CONFIG_YML" $run
 
 # Restart registry
 $run $DOCKER start "$CONTAINER" >/dev/null
