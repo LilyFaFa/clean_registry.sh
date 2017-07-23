@@ -5,7 +5,7 @@
 # The optional flag -x may be used to completely remove the specified repositories or tagged images.
 # This script stops the Registry container during the purge, making it temporarily unavailable to clients.
 #
-# v2.4 by Ricardo Branco
+# v2.4.1 by Ricardo Branco
 #
 # MIT License
 #
@@ -195,8 +195,8 @@ clean_repo ()
 		local tags=$(ls "$repo/_manifests/tags/" 2>/dev/null)
 		if [ -z "$tag" -o "$tag" = "$tags" ] ; then
 			$run rm -rvf "$repo"
+			return
 		fi
-		return
 	fi
 
 	if [ -z "$tag" ] ; then
