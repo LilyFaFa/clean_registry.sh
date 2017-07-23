@@ -71,7 +71,7 @@ check_dockertag ()
 
 for image ; do
 	if ! check_dockertag "$image" ; then
-		echo "ERROR: Invalid Docker repository/tag: $image" 1>&2
+		echo "Invalid Docker repository/tag: $image" 1>&2
 		exit 1
 	fi
 done
@@ -163,7 +163,7 @@ clean_tag ()
 		return 1
 	fi
 
-	if [[ $remove == true ]] ; then
+	if [ "$remove" = true ] ; then
 		$run rm -rvf "$repo/_manifests/tags/$tag/"
 	else
 		current=$(< "$repo/_manifests/tags/$tag/current/link")
@@ -177,7 +177,6 @@ clean_tag ()
 clean_repo ()
 {
 	local repo="${1%:*}"
-	local tags=$(ls "$repo/_manifests/tags/" 2>/dev/null)
 	local tag
 	local current
 
@@ -192,8 +191,11 @@ clean_repo ()
 		tag=${1#*:}
 	fi
 
-	if [[ $remove == true && ( -z $tag || $tag == $tags ) ]] ; then
-		$run rm -rvf "$repo"
+	if [ "$remove" = true ] ; then
+		local tags=$(ls "$repo/_manifests/tags/" 2>/dev/null)
+		if [ -z "$tag" -o "$tag" = "$tags" ] ; then
+			$run rm -rvf "$repo"
+		fi
 		return
 	fi
 
