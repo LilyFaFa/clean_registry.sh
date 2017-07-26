@@ -5,7 +5,7 @@
 # The optional flag -x may be used to completely remove the specified repositories or tagged images.
 # This script stops the Registry container during the purge, making it temporarily unavailable to clients.
 #
-# v2.6 by Ricardo Branco
+# v2.6.1 by Ricardo Branco
 #
 # MIT License
 #
@@ -49,10 +49,10 @@ check_dockertag ()
 		tag=${1#*:}
 	fi
 
-	# From https://github.com/docker/docker/blob/master/image/spec/v1.2.md
+	# From https://github.com/moby/moby/blob/master/image/spec/v1.2.md
 	# Tag values are limited to the set of characters [a-zA-Z0-9_.-], except they may not start with a . or - character.
-	# Tags are limited to 127 characters.
-	if ! [[ ${#1} -lt 256 && ${#tag} -lt 128 && $tag =~ ^[a-zA-Z0-9]+([\._-][a-zA-Z0-9_]+)*$ ]] ; then
+	# Tags are limited to 128 characters.
+	if ! [[ ${#1} -lt 256 && ${#tag} -le 128 && $tag =~ ^[a-zA-Z0-9_][a-zA-Z0-9_\.-]*$ ]] ; then
 		return 1
 	fi
 
@@ -62,8 +62,11 @@ check_dockertag ()
 	#    More strictly, it must match the regular expression [a-z0-9]+(?:[._-][a-z0-9]+)*
 	# 2. If a repository name has two or more path components, they must be separated by a forward slash ("/").
 	# 3. The total length of a repository name, including slashes, must be less than 256 characters.
+
+	# Note: Internally, distribution permits multiple dashes and up to 2 underscores.
+	# See https://github.com/docker/distribution/blob/master/reference/regexp.go
 	for elem in "${path[@]}" ; do
-		if ! [[ ${#elem} -gt 0 && $elem =~ ^[a-z0-9]+([\._-][a-z0-9]+)*$ ]] ; then
+		if ! [[ ${#elem} -gt 0 && $elem =~ ^[a-z0-9]+(([._]|__|[-]*)[a-z0-9]+)*$ ]] ; then
 			return 1
 		fi
 	done
@@ -226,7 +229,7 @@ for image in ${@:-$(ls .)} ; do
 	clean_repo "$image" || let errors++
 done
 
-$DOCKER run --rm -v "$REGISTRY_DIR:/var/lib/registry" registry:2 garbage-collect "$CONFIG_YML" $run
+$DOCKER run --rm -v "$REGISTRY_DIR:/var/lib/registry" registry:2 garbage-collect /etc/docker/registry/config.yml $run
 
 # Restart registry
 $run $DOCKER start "$CONTAINER" >/dev/null
