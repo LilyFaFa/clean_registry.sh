@@ -13,3 +13,7 @@ NOTES:
 Usage:
 
 clean_registry.sh [--dry-run] [-x] REGISTRY_CONTAINER [REPOSITORY[:TAG]]...
+
+## UPDATE:
+
+Better use the dockerized app [ricardobranco/clean_registry](https://hub.docker.com/r/ricardobranco/clean_registry/)
