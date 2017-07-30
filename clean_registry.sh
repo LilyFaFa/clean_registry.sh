@@ -5,7 +5,7 @@
 # The optional flag -x may be used to completely remove the specified repositories or tagged images.
 # This script stops the Registry container during the purge, making it temporarily unavailable to clients.
 #
-# v2.6.1 by Ricardo Branco
+# v2.6.2 by Ricardo Branco
 #
 # MIT License
 #
@@ -225,7 +225,7 @@ clean_repo ()
 }
 
 # Clean all or specified images/repositories
-for image in ${@:-$(ls .)} ; do
+for image in ${@:-$(dirname $(find * -type d -name _manifests))} ; do
 	clean_repo "$image" || let errors++
 done
 
